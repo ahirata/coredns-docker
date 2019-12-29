@@ -2,7 +2,6 @@ package docker
 
 import (
 	"context"
-	"errors"
 	"net"
 	"strings"
 
@@ -26,7 +25,7 @@ type docker struct {
 func (d *docker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	containers, err := d.cli.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
-		return dns.RcodeServerFailure, errors.New("failure to list containers")
+		return dns.RcodeServerFailure, err
 	}
 
 	state := request.Request{W: w, Req: r}

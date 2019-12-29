@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -18,17 +19,49 @@ type MockCli struct {
 	client.ContainerAPIClient
 }
 
-func (cli MockCli) ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error) {
-	settings := network.EndpointSettings{IPAddress: "172.0.0.3", GlobalIPv6Address: "2001:db8::3"}
+type FailingCli struct {
+	client.ContainerAPIClient
+}
+
+func ipv4Container() types.Container {
+	settings := network.EndpointSettings{IPAddress: "172.0.0.3"}
 	networks := make(map[string]*network.EndpointSettings)
 	networks["some-network"] = &settings
 	networkSettings := types.SummaryNetworkSettings{Networks: networks}
-	container := types.Container{Names: []string{"/some-container"}, NetworkSettings: &networkSettings}
-
-	return []types.Container{container}, nil
+	return types.Container{Names: []string{"/some-container-4"}, NetworkSettings: &networkSettings}
 }
 
-func TestExample(t *testing.T) {
+func ipv6Container() types.Container {
+	settings := network.EndpointSettings{GlobalIPv6Address: "2001:db8::3"}
+	networks := make(map[string]*network.EndpointSettings)
+	networks["some-network"] = &settings
+	networkSettings := types.SummaryNetworkSettings{Networks: networks}
+	return types.Container{Names: []string{"/some-container-6"}, NetworkSettings: &networkSettings}
+}
+
+func (cli MockCli) ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error) {
+	return []types.Container{ipv4Container(), ipv6Container()}, nil
+}
+
+func (cli FailingCli) ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error) {
+	return nil, errors.New("connection failure")
+}
+
+func TestContainerListFailure(t *testing.T) {
+	cli := FailingCli{}
+	dockerPlugin := docker{domains: []string{}, cli: cli}
+	ctx := context.TODO()
+
+	query := new(dns.Msg)
+	query.SetQuestion("some-host.", dns.TypeA)
+	recorder := dnstest.NewRecorder(&test.ResponseWriter{})
+	_, err := dockerPlugin.ServeDNS(ctx, recorder, query)
+	if err == nil {
+		t.Errorf("Failed, expected err ")
+	}
+}
+
+func TestContainers(t *testing.T) {
 	tests := []struct {
 		domains         []string
 		questionHost    string
@@ -37,10 +70,12 @@ func TestExample(t *testing.T) {
 		expectedIP      string
 		expectedError   bool
 	}{
-		{[]string{"."}, "some-container.", dns.TypeA, "A", "172.0.0.3", false},
-		{[]string{"domain."}, "some-container.domain.", dns.TypeA, "A", "172.0.0.3", false},
-		{[]string{"domain."}, "some-container.domain.", dns.TypeAAAA, "AAAA", "2001:db8::3", false},
-		{[]string{"domain1.", "domain2."}, "some-container.domain2.", dns.TypeAAAA, "AAAA", "2001:db8::3", false},
+		{[]string{"."}, "some-container-4.", dns.TypeA, "A", "172.0.0.3", false},
+		{[]string{"."}, "some-container-4.", dns.TypeAAAA, "AAAA", "", true},
+		{[]string{"domain."}, "some-container-4.otherdomain.", dns.TypeA, "A", "172.0.0.3", true},
+		{[]string{"domain."}, "some-container-4.domain.", dns.TypeA, "A", "172.0.0.3", false},
+		{[]string{"domain."}, "some-container-6.domain.", dns.TypeAAAA, "AAAA", "2001:db8::3", false},
+		{[]string{"domain1.", "domain2."}, "some-container-6.domain2.", dns.TypeAAAA, "AAAA", "2001:db8::3", false},
 	}
 
 	for _, example := range tests {
@@ -54,7 +89,11 @@ func TestExample(t *testing.T) {
 		dockerPlugin.ServeDNS(ctx, recorder, query)
 
 		expected := fmt.Sprintf("%s	0	IN	%s	%s", example.questionHost, example.questionTypeStr, example.expectedIP)
-		if record := recorder.Msg.Answer[0].String(); record != expected {
+		if example.expectedError {
+			if recorder.Msg != nil {
+				t.Errorf("Failed, got %v", recorder.Msg)
+			}
+		} else if record := recorder.Msg.Answer[0].String(); record != expected {
 			t.Errorf("Failed [%s], got %s", expected, record)
 		}
 	}

@@ -30,21 +30,22 @@ func (cli MockCli) ContainerList(ctx context.Context, options types.ContainerLis
 
 func TestExample(t *testing.T) {
 	tests := []struct {
-		domain          string
+		domains         []string
 		questionHost    string
 		questionType    uint16
 		questionTypeStr string
 		expectedIP      string
 		expectedError   bool
 	}{
-		{".", "some-container.", dns.TypeA, "A", "172.0.0.3", false},
-		{"domain.", "some-container.domain.", dns.TypeA, "A", "172.0.0.3", false},
-		{"domain.", "some-container.domain.", dns.TypeAAAA, "AAAA", "2001:db8::3", false},
+		{[]string{"."}, "some-container.", dns.TypeA, "A", "172.0.0.3", false},
+		{[]string{"domain."}, "some-container.domain.", dns.TypeA, "A", "172.0.0.3", false},
+		{[]string{"domain."}, "some-container.domain.", dns.TypeAAAA, "AAAA", "2001:db8::3", false},
+		{[]string{"domain1.", "domain2."}, "some-container.domain2.", dns.TypeAAAA, "AAAA", "2001:db8::3", false},
 	}
 
 	for _, example := range tests {
 		cli := MockCli{}
-		dockerPlugin := docker{domains: []string{example.domain}, cli: cli}
+		dockerPlugin := docker{domains: example.domains, cli: cli}
 		ctx := context.TODO()
 
 		query := new(dns.Msg)
@@ -52,9 +53,9 @@ func TestExample(t *testing.T) {
 		recorder := dnstest.NewRecorder(&test.ResponseWriter{})
 		dockerPlugin.ServeDNS(ctx, recorder, query)
 
-		expected := fmt.Sprintf("%s	50	IN	%s	%s", example.questionHost, example.questionTypeStr, example.expectedIP)
+		expected := fmt.Sprintf("%s	0	IN	%s	%s", example.questionHost, example.questionTypeStr, example.expectedIP)
 		if record := recorder.Msg.Answer[0].String(); record != expected {
-			t.Errorf("Failed, got %s", record)
+			t.Errorf("Failed [%s], got %s", expected, record)
 		}
 	}
 }

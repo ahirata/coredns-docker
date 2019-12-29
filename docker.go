@@ -16,14 +16,14 @@ import (
 	"github.com/miekg/dns"
 )
 
-type Docker struct {
-	Next    plugin.Handler
-	Cli     client.ContainerAPIClient
-	Domains []string
+type docker struct {
+	next    plugin.Handler
+	cli     client.ContainerAPIClient
+	domains []string
 }
 
-func (d *Docker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-	containers, err := d.Cli.ContainerList(context.Background(), types.ContainerListOptions{})
+func (d *docker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	containers, err := d.cli.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
 		return dns.RcodeServerFailure, errors.New("failure to list containers")
 	}
@@ -40,16 +40,17 @@ func (d *Docker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 	case dns.TypeAAAA:
 		m.Answer = d.generateAnswers(state.Name(), containers, d.aaaa)
 	}
+	println("meh")
 
 	if len(m.Answer) == 0 {
-		return plugin.NextOrFailure(d.Name(), d.Next, ctx, w, r)
+		return plugin.NextOrFailure(d.Name(), d.next, ctx, w, r)
 	}
 
 	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil
 }
 
-func (d *Docker) a(name string, nt *network.EndpointSettings) dns.RR {
+func (d *docker) a(name string, nt *network.EndpointSettings) dns.RR {
 	ip := net.ParseIP(nt.IPAddress)
 	r := new(dns.A)
 	r.Hdr = dns.RR_Header{Name: name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 50}
@@ -57,7 +58,7 @@ func (d *Docker) a(name string, nt *network.EndpointSettings) dns.RR {
 	return r
 }
 
-func (d *Docker) aaaa(name string, nt *network.EndpointSettings) dns.RR {
+func (d *docker) aaaa(name string, nt *network.EndpointSettings) dns.RR {
 	if nt.GlobalIPv6Address == "" {
 		return nil
 	}
@@ -68,7 +69,7 @@ func (d *Docker) aaaa(name string, nt *network.EndpointSettings) dns.RR {
 	return r
 }
 
-func (d *Docker) generateAnswers(query string, containers []types.Container, generateRecord func(string, *network.EndpointSettings) dns.RR) []dns.RR {
+func (d *docker) generateAnswers(query string, containers []types.Container, generateRecord func(string, *network.EndpointSettings) dns.RR) []dns.RR {
 	var answers []dns.RR
 	for _, container := range containers {
 		for _, name := range container.Names {
@@ -85,8 +86,8 @@ func (d *Docker) generateAnswers(query string, containers []types.Container, gen
 	return answers
 }
 
-func (d *Docker) Name() string { return "docker" }
+func (d *docker) Name() string { return "docker" }
 
-func (d *Docker) toFQDN(name string) string {
-	return dnsutil.Join(strings.Split(name, "/")[1], d.Domains[0])
+func (d *docker) toFQDN(name string) string {
+	return dnsutil.Join(strings.Split(name, "/")[1], d.domains[0])
 }

@@ -44,7 +44,7 @@ func TestExample(t *testing.T) {
 
 	for _, example := range tests {
 		cli := MockCli{}
-		dockerPlugin := Docker{Domains: []string{example.domain}, Cli: cli}
+		dockerPlugin := docker{domains: []string{example.domain}, cli: cli}
 		ctx := context.TODO()
 
 		query := new(dns.Msg)

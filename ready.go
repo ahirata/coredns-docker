@@ -1,3 +1,3 @@
 package docker
 
-func (e Docker) Ready() bool { return true }
+func (e *docker) Ready() bool { return true }

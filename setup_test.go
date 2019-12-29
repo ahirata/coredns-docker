@@ -16,6 +16,7 @@ func TestSetup(t *testing.T) {
 
 	for _, test := range tests {
 		c := caddy.NewTestController("dns", test.body)
+		c.ServerBlockKeys = []string{"domain.com.:8053", "dynamic.domain.com.:8053"}
 		if err := setup(c); (err == nil) == test.expectedError {
 			t.Errorf("Unexpected errors: %v", err)
 		}

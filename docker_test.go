@@ -29,22 +29,24 @@ func (cli MockCli) ContainerList(ctx context.Context, options types.ContainerLis
 }
 
 func TestExample(t *testing.T) {
-	cli := MockCli{}
-	dockerPlugin := Docker{Domains: []string{"domain."}, Cli: cli}
-	ctx := context.TODO()
-
 	tests := []struct {
+		domain          string
 		questionHost    string
 		questionType    uint16
 		questionTypeStr string
 		expectedIP      string
 		expectedError   bool
 	}{
-		{"some-container.domain.", dns.TypeA, "A", "172.0.0.3", false},
-		{"some-container.domain.", dns.TypeAAAA, "AAAA", "2001:db8::3", false},
+		{".", "some-container.", dns.TypeA, "A", "172.0.0.3", false},
+		{"domain.", "some-container.domain.", dns.TypeA, "A", "172.0.0.3", false},
+		{"domain.", "some-container.domain.", dns.TypeAAAA, "AAAA", "2001:db8::3", false},
 	}
 
 	for _, example := range tests {
+		cli := MockCli{}
+		dockerPlugin := Docker{Domains: []string{example.domain}, Cli: cli}
+		ctx := context.TODO()
+
 		query := new(dns.Msg)
 		query.SetQuestion(example.questionHost, example.questionType)
 		recorder := dnstest.NewRecorder(&test.ResponseWriter{})

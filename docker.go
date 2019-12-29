@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/coredns/coredns/plugin"
+	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/coredns/coredns/request"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
@@ -69,7 +70,7 @@ func (d *Docker) generateAnswers(query string, containers []types.Container, gen
 		for _, name := range container.Names {
 			if fqdn := d.toFQDN(name); fqdn == query {
 				for _, nt := range container.NetworkSettings.Networks {
-					if r := generateRecord(fqdn, nt); r != nil {
+					if r := generateRecord(query, nt); r != nil {
 						answers = append(answers, r)
 					}
 				}
@@ -83,5 +84,5 @@ func (d *Docker) generateAnswers(query string, containers []types.Container, gen
 func (d *Docker) Name() string { return "docker" }
 
 func (d *Docker) toFQDN(name string) string {
-	return strings.Split(name, "/")[1] + "." + d.Domains[0]
+	return dnsutil.Join(strings.Split(name, "/")[1], d.Domains[0])
 }

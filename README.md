@@ -10,8 +10,18 @@ The *docker* plugin is useful for development environments so you can access
 containers by their names.
 
 ## Syntax
+
+The plugin is activated by using its name without any additional parameters
+```
+. {
+  docker
+}
+```
+
+## Example
+
 The configuration bellow will match containers by their names without using any
-zone.
+zone:
 ```
 . {
   docker
@@ -21,7 +31,7 @@ zone.
 For instance, if you have a container named `my-nginx`, it will return
 something like this:
 ```
-my-nginx.   50      IN      A       172.25.0.2
+my-nginx.   0      IN      A       172.25.0.2
 ```
 
 In case you want `my-nginx` under a particular zone, you could use:
@@ -32,5 +42,5 @@ localdomain {
 ```
 Then you would get:
 ```
-my-nginx.localdomain   50      IN      A       172.25.0.2
+my-nginx.localdomain   0      IN      A       172.25.0.2
 ```

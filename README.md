@@ -1,4 +1,7 @@
 # coredns-docker
+[![Build Status](https://travis-ci.org/ahirata/coredns-docker.svg?branch=master)](https://travis-ci.org/ahirata/coredns-docker)
+[![Code Coverage](https://img.shields.io/codecov/c/github/ahirata/coredns-docker/master.svg)](https://codecov.io/github/ahirata/coredns-docker?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ahirata/coredns-docker)](https://goreportcard.com/report/ahirata/coredns-docker)
 
 ## Name
 

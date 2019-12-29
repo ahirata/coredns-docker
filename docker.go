@@ -41,6 +41,10 @@ func (d *Docker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg)
 		m.Answer = d.generateAnswers(state.Name(), containers, d.aaaa)
 	}
 
+	if len(m.Answer) == 0 {
+		return plugin.NextOrFailure(d.Name(), d.Next, ctx, w, r)
+	}
+
 	w.WriteMsg(m)
 	return dns.RcodeSuccess, nil
 }

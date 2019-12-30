@@ -10,7 +10,7 @@
 ## Description
 
 The *docker* plugin is useful for development environments so you can access
-containers by their names.
+containers by their names. This plugin is not intended for production usage.
 
 ## Syntax
 

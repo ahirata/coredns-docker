@@ -1,6 +1,6 @@
 # coredns-docker
 [![Build Status](https://travis-ci.org/ahirata/coredns-docker.svg?branch=master)](https://travis-ci.org/ahirata/coredns-docker)
-[![Code Coverage](https://img.shields.io/codecov/c/github/ahirata/coredns-docker/master.svg)](https://codecov.io/github/ahirata/coredns-docker?branch=master)
+[![Code Coverage](https://codecov.io/gh/ahirata/coredns-docker/branch/master/graph/badge.svg)](https://codecov.io/gh/ahirata/coredns-docker)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ahirata/coredns-docker)](https://goreportcard.com/report/ahirata/coredns-docker)
 
 ## Name
@@ -45,5 +45,5 @@ localdomain {
 ```
 Then you would get:
 ```
-my-nginx.localdomain   0      IN      A       172.25.0.2
+my-nginx.localdomain.   0      IN      A       172.25.0.2
 ```

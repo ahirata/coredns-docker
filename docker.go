@@ -25,7 +25,7 @@ type docker struct {
 func (d *docker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	containers, err := d.cli.ContainerList(context.Background(), types.ContainerListOptions{})
 	if err != nil {
-		return dns.RcodeServerFailure, err
+		return plugin.NextOrFailure(d.Name(), d.next, ctx, w, r)
 	}
 
 	state := request.Request{W: w, Req: r}

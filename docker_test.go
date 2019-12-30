@@ -2,7 +2,6 @@ package docker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 
@@ -10,18 +9,9 @@ import (
 	"github.com/coredns/coredns/plugin/test"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
 
 	"github.com/miekg/dns"
 )
-
-type MockCli struct {
-	client.ContainerAPIClient
-}
-
-type FailingCli struct {
-	client.ContainerAPIClient
-}
 
 func ipv4Container() types.Container {
 	settings := network.EndpointSettings{IPAddress: "172.0.0.3"}
@@ -39,16 +29,8 @@ func ipv6Container() types.Container {
 	return types.Container{Names: []string{"/some-container-6"}, NetworkSettings: &networkSettings}
 }
 
-func (cli MockCli) ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error) {
-	return []types.Container{ipv4Container(), ipv6Container()}, nil
-}
-
-func (cli FailingCli) ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error) {
-	return nil, errors.New("connection failure")
-}
-
 func TestContainerListFailure(t *testing.T) {
-	cli := FailingCli{}
+	cli := ConnFailureCli{}
 	dockerPlugin := docker{domains: []string{}, cli: cli}
 	ctx := context.TODO()
 
@@ -79,7 +61,7 @@ func TestContainers(t *testing.T) {
 	}
 
 	for _, example := range tests {
-		cli := MockCli{}
+		cli := WorkingCli{}
 		dockerPlugin := docker{domains: example.domains, cli: cli}
 		ctx := context.TODO()
 

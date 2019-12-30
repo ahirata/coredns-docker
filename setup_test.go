@@ -9,13 +9,13 @@ import (
 )
 
 func TestDockerInit(t *testing.T) {
-	if _, err := f(); err != nil {
+	if _, err := newDockerCli(); err != nil {
 		t.Errorf("Unxpected error %v", err)
 	}
 }
 
 func TestDockerInitFailureSetup(t *testing.T) {
-	f = func() (DockerCli, error) {
+	newDockerCli = func() (DockerCli, error) {
 		return nil, errors.New("docker client init failed")
 	}
 
@@ -26,7 +26,7 @@ func TestDockerInitFailureSetup(t *testing.T) {
 }
 
 func TestDockerConnectFailureSetup(t *testing.T) {
-	f = func() (DockerCli, error) {
+	newDockerCli = func() (DockerCli, error) {
 		return ConnFailureCli{}, nil
 	}
 
@@ -37,7 +37,7 @@ func TestDockerConnectFailureSetup(t *testing.T) {
 }
 
 func TestSetup(t *testing.T) {
-	f = func() (DockerCli, error) {
+	newDockerCli = func() (DockerCli, error) {
 		return WorkingCli{}, nil
 	}
 

@@ -18,7 +18,7 @@ type DockerCli interface {
 }
 
 // exposed for testing
-var f = func() (DockerCli, error) {
+var newDockerCli = func() (DockerCli, error) {
 	return client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 }
 
@@ -31,7 +31,7 @@ func setup(c *caddy.Controller) error {
 	for i, key := range c.ServerBlockKeys {
 		domains[i] = plugin.Host(key).Normalize()
 	}
-	cli, err := f()
+	cli, err := newDockerCli()
 	if err != nil {
 		return plugin.Error("docker", err)
 	}

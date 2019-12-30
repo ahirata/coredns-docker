@@ -21,6 +21,8 @@ type docker struct {
 	domains []string
 }
 
+func (d *docker) Name() string { return "docker" }
+
 // ServeDNS implements the plugin.Handler interface.
 func (d *docker) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	containers, err := d.cli.ContainerList(context.Background(), types.ContainerListOptions{})
@@ -87,8 +89,6 @@ func (d *docker) generateAnswers(query string, containers []types.Container, gen
 	}
 	return answers
 }
-
-func (d *docker) Name() string { return "docker" }
 
 func (d *docker) toFQDN(name string, domain string) string {
 	return dnsutil.Join(strings.Split(name, "/")[1], domain)

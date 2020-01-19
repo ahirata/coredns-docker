@@ -20,7 +20,7 @@ func TestDockerInitFailureSetup(t *testing.T) {
 	}
 
 	c := caddy.NewTestController("dns", "")
-	if _ = setup(c); len(dnsserver.GetConfig(c).Plugin) != 0 {
+	if err := setup(c); err == nil || len(dnsserver.GetConfig(c).Plugin) != 0 {
 		t.Errorf("Expected error")
 	}
 }
@@ -31,7 +31,7 @@ func TestDockerConnectFailureSetup(t *testing.T) {
 	}
 
 	c := caddy.NewTestController("dns", "")
-	if _ = setup(c); len(dnsserver.GetConfig(c).Plugin) != 0 {
+	if err := setup(c); err != nil || len(dnsserver.GetConfig(c).Plugin) != 0 {
 		t.Errorf("Expected error")
 	}
 }
@@ -41,20 +41,14 @@ func TestSetup(t *testing.T) {
 		return WorkingCli{}, nil
 	}
 
-	tests := []struct {
-		body          string
-		expectedError bool
-	}{
-		{"docker", false},
+	c := caddy.NewTestController("dns", "docker")
+	c.ServerBlockKeys = []string{"domain.com.:8053", "dynamic.domain.com.:8053"}
+	if err := setup(c); err != nil {
+		t.Errorf("Unexpected errors: %v", err)
 	}
 
-	for _, test := range tests {
-		c := caddy.NewTestController("dns", test.body)
-		c.ServerBlockKeys = []string{"domain.com.:8053", "dynamic.domain.com.:8053"}
-		if err := setup(c); len(dnsserver.GetConfig(c).Plugin) < 1 {
-			t.Errorf("Unexpected errors: %v", err)
-		} else if h := dnsserver.GetConfig(c).Plugin[0](nil); h == nil {
-			t.Errorf("Unexpected errors")
-		}
+	plugin := dnsserver.GetConfig(c).Plugin
+	if len(plugin) != 1 || plugin[0](nil) == nil {
+		t.Errorf("Unexpected errors")
 	}
 }

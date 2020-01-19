@@ -54,8 +54,8 @@ func TestContainers(t *testing.T) {
 	}{
 		{[]string{"."}, "some-container-4.", dns.TypeA, "A", "172.0.0.3", false},
 		{[]string{"."}, "some-container-4.", dns.TypeAAAA, "AAAA", "", true},
-		{[]string{"domain."}, "some-container-4.otherdomain.", dns.TypeA, "A", "172.0.0.3", true},
 		{[]string{"domain."}, "some-container-4.domain.", dns.TypeA, "A", "172.0.0.3", false},
+		{[]string{"domain."}, "some-container-4.otherdomain.", dns.TypeA, "A", "172.0.0.3", true},
 		{[]string{"domain."}, "some-container-6.domain.", dns.TypeAAAA, "AAAA", "2001:db8::3", false},
 		{[]string{"domain1.", "domain2."}, "some-container-6.domain2.", dns.TypeAAAA, "AAAA", "2001:db8::3", false},
 	}

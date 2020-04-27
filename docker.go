@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/docker/docker/api/types"
@@ -19,16 +20,14 @@ type DockerDNS struct {
 	cli     DockerCli
 	domains []string
 	records map[string][]dns.RR
-	ips     map[string]dns.RR
 }
 
 func NewDockerDNS(domains []string, cli DockerCli) (*DockerDNS, error) {
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
-	if err != nil {
+	dockerDNS := DockerDNS{domains: domains, cli: cli}
+	if err := dockerDNS.initializeRecords(); err != nil {
 		return nil, err
 	}
-	dockerDNS := DockerDNS{domains: domains, cli: cli}
-	dockerDNS.initializeRecords(containers)
+
 	go dockerDNS.eventListener()
 
 	return &dockerDNS, nil
@@ -53,11 +52,38 @@ func (d *DockerDNS) eventListener() {
 	for {
 		select {
 		case err := <-errs:
-			if err != nil && err != io.EOF {
-				logger.Println("Error while reading docker events channel.", err)
+			if err != nil {
+				if err == io.EOF {
+					logger.Info("Docker channel EOF.", err)
+				} else {
+					logger.Error("Error while reading docker events channel", err)
+				}
+			} else {
+				logger.Debug("Seems we don't have a connection with docker events.")
+				messages, errs = d.retryConnection(eventOptions)
 			}
 		case msg := <-messages:
+			logger.Debug(msg)
 			d.handleMessage(msg)
+		}
+	}
+}
+
+func (d *DockerDNS) retryConnection(eventOptions types.EventsOptions) (<-chan events.Message, <-chan error) {
+	if len(d.records) > 0 {
+		d.records = make(map[string][]dns.RR)
+	}
+	for {
+		time.Sleep(1 * time.Second)
+		logger.Info("Trying to get new event channel... ")
+		messages, errs := d.cli.Events(context.Background(), eventOptions)
+		select {
+		case m := <-errs:
+			logger.Errorf("%v\n", m)
+		case <-time.After(1 * time.Second):
+			logger.Debug("Nothing came on the error channel. Initializing records since everything seems fine")
+			d.initializeRecords()
+			return messages, errs
 		}
 	}
 }
@@ -65,7 +91,7 @@ func (d *DockerDNS) eventListener() {
 func (d *DockerDNS) handleMessage(msg events.Message) {
 	container, err := d.containerInspect(msg)
 	if err != nil {
-		logger.Printf("Error while inspecting the container %v, %v", msg, err)
+		logger.Errorf("Error while inspecting the container %v, %v", msg, err)
 		return
 	}
 
@@ -113,15 +139,20 @@ func (d *DockerDNS) removeContainer(name string) {
 	}
 }
 
-func (d *DockerDNS) initializeRecords(containers []types.Container) {
+func (d *DockerDNS) initializeRecords() error {
+	containers, err := d.cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	if err != nil {
+		return err
+	}
+
 	d.records = make(map[string][]dns.RR)
-	d.ips = make(map[string]dns.RR)
 
 	for _, container := range containers {
 		for _, name := range container.Names {
 			d.addContainer(name, container.NetworkSettings.Networks)
 		}
 	}
+	return nil
 }
 
 func (d *DockerDNS) recordsForFQDN(fqdn string, endpointSettings map[string]*network.EndpointSettings) {

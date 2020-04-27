@@ -6,13 +6,11 @@ import (
 	clog "github.com/coredns/coredns/plugin/pkg/log"
 	"github.com/docker/docker/client"
 	"golang.org/x/net/context"
-	"log"
-	"os"
 
 	"github.com/caddyserver/caddy"
 )
 
-var logger = log.New(os.Stdout, "", 0)
+var logger = clog.NewWithPlugin("docker")
 
 func init() { plugin.Register("docker", setup) }
 
@@ -26,8 +24,6 @@ var newDockerCli = func() (DockerCli, error) {
 }
 
 func setup(c *caddy.Controller) error {
-	var log = clog.NewWithPlugin("docker")
-
 	c.Next()
 
 	domains := make([]string, len(c.ServerBlockKeys))
@@ -42,7 +38,7 @@ func setup(c *caddy.Controller) error {
 
 	ctx := context.Background()
 	if _, err := cli.Ping(ctx); err != nil {
-		log.Errorf("Disabling plugin due to errors. %v", err)
+		logger.Errorf("Disabling plugin due to errors. %v", err)
 	} else {
 		dockerDNS, _ := NewDockerDNS(domains, cli)
 		dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {

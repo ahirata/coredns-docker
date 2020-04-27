@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/docker/docker/api/types/events"
 	"github.com/miekg/dns"
@@ -64,5 +65,9 @@ func TestContainerUpdates(t *testing.T) {
 	messages <- events.Message{Type: "network", Action: "disconnect", Actor: events.Actor{Attributes: map[string]string{"name": "some-container-8"}}}
 	messages <- events.Message{Type: "container", Action: "rename", Actor: events.Actor{Attributes: map[string]string{"name": "some-container-6", "oldName": "/some-old-container"}}}
 	errs <- errors.New("Unexpected error")
+	errs <- io.EOF
+	errs <- nil
+	messages, errs = cli.ResetEvents()
+	time.Sleep(2 * time.Second)
 	errs <- io.EOF
 }

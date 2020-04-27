@@ -82,6 +82,15 @@ func (cli WorkingCli) Events(ctx context.Context, options types.EventsOptions) (
 	return cli.messages, cli.errs
 }
 
+func (cli WorkingCli) ResetEvents() (chan events.Message, chan error) {
+	messages := make(chan events.Message)
+	errs := make(chan error, 1)
+	cli.messages = messages
+	cli.errs = errs
+
+	return messages, errs
+}
+
 func (cli WorkingCli) Ping(ctx context.Context) (types.Ping, error) {
 	return types.Ping{}, nil
 }
